@@ -3,7 +3,7 @@
 
 import * as React from 'react'
 
-const countReducer = (state, newState) => newState
+const countReducer = (state, newState) => ({ ...state, ...newState })
 
 function Counter({initialCount = 0, step = 1}) {
   const [count, setCount] = React.useReducer(countReducer, {count: initialCount})
