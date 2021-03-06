@@ -27,7 +27,7 @@ function asyncReducer(state, action) {
   }
 }
 
-function useAsync(initialState, ref) {
+function useAsync(initialState) {
   const [state, dispatch] = React.useReducer(asyncReducer, {
     status: 'idle',
     data: null,
@@ -35,11 +35,20 @@ function useAsync(initialState, ref) {
     ...initialState,
   })
 
-  const safeDispatch = React.useCallback(state => {
-    if (ref.current) {
-      dispatch(state)
+  const isMountedRef = React.useRef(false)
+
+  React.useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
     }
-  }, [ref])
+  }, [])
+
+  const safeDispatch = React.useCallback((...args) => {
+    if (isMountedRef.current) {
+      dispatch(...args)
+    }
+  }, [isMountedRef])
 
   const run = React.useCallback(promise => {
     if (!promise) {
@@ -60,7 +69,6 @@ function useAsync(initialState, ref) {
 }
 
 function PokemonInfo({pokemonName}) {
-  const ref = React.useRef(true)
   const {data: pokemon, status, error, run} = useAsync({
     status: pokemonName ? 'pending' : 'idle',
   }, ref)
@@ -70,9 +78,6 @@ function PokemonInfo({pokemonName}) {
       return
     }
     run(fetchPokemon(pokemonName))
-    return () => {
-      ref.current = false
-    }
   }, [pokemonName, run])
 
   if (status === 'idle' || !pokemonName) {
