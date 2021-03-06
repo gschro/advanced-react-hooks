@@ -27,16 +27,15 @@ function asyncReducer(state, action) {
   }
 }
 
-function useAsync(asyncCallback, initialState) {
+function useAsync(initialState) {
   const [state, dispatch] = React.useReducer(asyncReducer, {
     status: 'idle',
     data: null,
     error: null,
-    ...initialState
+    ...initialState,
   })
 
-  React.useEffect(() => {
-    const promise = asyncCallback()
+  const run = React.useCallback(promise => {
     if (!promise) {
       return
     }
@@ -49,24 +48,22 @@ function useAsync(asyncCallback, initialState) {
         dispatch({type: 'rejected', error})
       },
     )
-  }, [asyncCallback])
+  }, [dispatch])
 
-  return state
+  return { ...state, run }
 }
 
 function PokemonInfo({pokemonName}) {
-  const getPokemon = React.useCallback(() => {
+  const {data: pokemon, status, error, run} = useAsync({
+    status: pokemonName ? 'pending' : 'idle',
+  })
+
+  React.useEffect(() => {
     if (!pokemonName) {
       return
     }
-    return fetchPokemon(pokemonName)
-  }, [pokemonName])
-  const state = useAsync(
-    getPokemon,
-    {status: pokemonName ? 'pending' : 'idle'},
-  )
-
-  const {data: pokemon, status, error} = state
+    run(fetchPokemon(pokemonName))
+  }, [pokemonName, run])
 
   if (status === 'idle' || !pokemonName) {
     return 'Submit a pokemon'
